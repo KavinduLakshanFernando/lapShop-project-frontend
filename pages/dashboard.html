@@ -1,0 +1,38 @@
+<!-- DASHBOARD -->
+<div class="section-header">
+  <h2>Dashboard</h2>
+</div>
+
+<div class="grid grid-2" style="margin-bottom:24px">
+  <div class="stat-card">
+    <div class="stat-label">Total Products</div>
+    <div class="stat-value" id="stat-products">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Orders</div>
+    <div class="stat-value" id="stat-orders">0</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="stat-card">
+    <div class="stat-label">Revenue</div>
+    <div class="stat-value" id="stat-revenue">$0.00</div>
+  </div>
+  <div class="card">
+    <h3>Recent Orders</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="dash-orders">
+        <tr><td colspan="4" style="text-align:center;color:var(--muted)">No orders yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>

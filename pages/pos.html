@@ -1,0 +1,30 @@
+<!-- POS / CHECKOUT -->
+<div class="section-header">
+  <h2>Point of Sale</h2>
+  <p style="color:var(--muted);font-size:14px">Search products and create orders</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:24px">
+  <div>
+    <div class="search-bar">
+      <input type="text" id="pos-search" placeholder="Search products..." oninput="renderPosProducts()" style="width:100%;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px">
+    </div>
+    <div class="grid grid-3" id="pos-products">
+      <div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">Loading products...</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="position:sticky;top:24px">
+      <h3 style="margin-bottom:16px">Shopping Cart</h3>
+      <div id="cart-items" style="max-height:400px;overflow-y:auto">
+        <div style="text-align:center;padding:24px;color:var(--muted)">Cart is empty</div>
+      </div>
+      <div class="cart-total" style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:var(--radius);margin-top:12px;font-weight:600">
+        <span>Total</span>
+        <span id="cart-total" class="price">$0.00</span>
+      </div>
+      <button class="btn btn-success" style="width:100%;margin-top:12px;padding:12px;font-weight:600" onclick="placeOrder()" id="place-order-btn" disabled>Place Order</button>
+    </div>
+  </div>
+</div>

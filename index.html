@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini POS - ECA Cloud</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f4f7fb;--surface:#ffffff;--card:#eef3fb;--primary:#2563eb;--primary-hover:#1d4ed8;--success:#16a34a;--danger:#dc2626;--warn:#d97706;--info:#0284c7;--text:#0f172a;--muted:#64748b;--border:#d7e1ee;--radius:10px}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.toast-container{position:fixed;top:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:var(--radius);color:#fff;font-size:14px;animation:slideIn .3s ease;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.info{background:var(--primary)}.toast.warn{background:var(--warn)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--primary),#0ea5e9);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header .user-info{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+header .user-info span{color:var(--text);font-weight:600}
+.btn{padding:8px 18px;border:none;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;transition:.2s}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-hover)}
+.btn-success{background:var(--success);color:#fff}.btn-success:hover{background:#16a34a}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-warn{background:var(--warn);color:#fff}.btn-warn:hover{background:#d97706}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{background:var(--card)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-xs{padding:4px 8px;font-size:11px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+nav{background:var(--surface);display:flex;gap:4px;padding:8px 32px;border-bottom:1px solid var(--border)}
+nav button{background:transparent;border:none;color:var(--muted);padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;border-radius:var(--radius) var(--radius) 0 0;transition:.2s}
+nav button.active{background:var(--primary);color:#fff}
+nav button:hover:not(.active){background:var(--card)}
+.page{display:none;padding:24px 32px}.page.active{display:block}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.grid-4{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:.2s;position:relative}
+.card:hover{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.card-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;outline:none;transition:.2s;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(59,130,246,.3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;overflow-y:auto}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;margin:20px auto}
+.modal h2{margin-bottom:20px;font-size:20px}
+.modal-buttons{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+thead{background:var(--card)}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+tbody tr:hover{background:var(--card)}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.badge-success{background:rgba(34,197,94,.15);color:var(--success)}
+.badge-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.badge-pending{background:rgba(59,130,246,.15);color:var(--info)}
+.badge-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.price{font-weight:700;color:var(--success)}
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.stat-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-card .value{font-size:28px;font-weight:700}
+.section-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.section-header h2{font-size:20px}
+.search-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.product-img{width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:12px;background:var(--card)}
+.product-card{display:flex;flex-direction:column}
+.product-info{flex:1}
+.product-name{font-weight:600;font-size:15px;margin-bottom:4px}
+.product-price{font-weight:700;color:var(--success);margin-bottom:8px}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.cart-item:last-child{border:none}
+.cart-total{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-top:2px solid var(--border);margin-top:8px;font-size:18px;font-weight:700}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .icon{font-size:48px;margin-bottom:12px}
+.qty-control{display:flex;align-items:center;gap:8px}
+.qty-control button{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.qty-control span{min-width:24px;text-align:center;font-weight:600}
+#auth-page.active{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px);padding:20px}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px;width:100%;max-width:400px}
+.auth-card h2{text-align:center;margin-bottom:24px;font-size:24px}
+.auth-toggle{text-align:center;margin-top:16px;color:var(--muted);font-size:14px}
+.auth-toggle a{color:var(--primary);cursor:pointer;text-decoration:none;font-weight:600}
+.search-bar{margin-bottom:16px}
+.search-bar input{width:100%;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;outline:none}
+.search-bar input:focus{border-color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="toast-container" id="toasts"></div>
+
+<header>
+  <h1>💻 LapShop POS</h1>
+  <div class="user-info" id="header-user" style="display:none">
+    <span id="header-username"></span>
+    <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<nav id="main-nav" style="display:none">
+  <button onclick="showPage('dashboard')" data-page="dashboard" class="active">Dashboard</button>
+  <button onclick="showPage('products')" data-page="products">Products</button>
+  <button onclick="showPage('pos')" data-page="pos">Orders</button>
+  <button onclick="showPage('orders')" data-page="orders">Order-Details</button>
+</nav>
+
+<!-- AUTH PAGE -->
+<div id="auth-page" class="page active">
+  <div class="auth-card">
+    <h2 id="auth-title">Sign In</h2>
+    <div id="register-fields" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="John Doe">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="Enter password">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="handleAuth()" id="auth-btn">Sign In</button>
+    <div class="auth-toggle">
+      <span id="auth-toggle-text">Don't have an account?</span>
+      <a onclick="toggleAuthMode()" id="auth-toggle-link">Register</a>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="page">
+  <div class="stat-cards">
+    <div class="stat-card"><div class="label">Total Products</div><div class="value" id="stat-products">0</div></div>
+    <div class="stat-card"><div class="label">Total Orders</div><div class="value" id="stat-orders">0</div></div>
+    <div class="stat-card"><div class="label">Revenue</div><div class="value price" id="stat-revenue">$0.00</div></div>
+  </div>
+  <div class="section-header"><h2>Recent Orders</h2></div>
+  <div class="card">
+    <table><thead><tr><th>Order ID</th><th>Product</th><th>Qty</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody id="dash-orders"></tbody></table>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div id="products" class="page">
+  <div class="section-header">
+    <h2>Inventory Management</h2>
+    <button class="btn btn-primary" onclick="openAddProduct()">+ Add Product</button>
+  </div>
+  <div class="search-bar"><input type="text" id="product-search" placeholder="Search products..." oninput="renderProducts()"></div>
+  <div class="grid grid-3" id="product-grid"></div>
+</div>
+
+<!-- POS -->
+<div id="pos" class="page">
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:24px">
+    <div>
+      <div class="search-bar"><input type="text" id="pos-search" placeholder="Search products..." oninput="renderPosProducts()"></div>
+      <div class="grid grid-3" id="pos-products"></div>
+    </div>
+    <div>
+      <div class="card" style="position:sticky;top:24px">
+        <h3 style="margin-bottom:16px">🛒 Cart</h3>
+        <div id="cart-items"></div>
+        <div class="cart-total"><span>Total</span><span id="cart-total" class="price">$0.00</span></div>
+        <button class="btn btn-success" style="width:100%;margin-top:12px;padding:12px" onclick="placeOrder()" id="place-order-btn" disabled>Place Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ORDERS -->
+<div id="orders" class="page">
+  <div class="section-header">
+    <h2>Order History</h2>
+    <select id="order-status-filter" onchange="renderOrders()" style="padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px">
+      <option value="">All Statuses</option>
+      <option value="PENDING">Pending</option>
+      <option value="CONFIRMED">Confirmed</option>
+      <option value="COMPLETED">Completed</option>
+      <option value="SHIPPED">Shipped</option>
+      <option value="DELIVERED">Delivered</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+  </div>
+  <div class="card">
+    <table><thead><tr><th>Order ID</th><th>Product</th><th>Qty</th><th>Price</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody id="orders-table"></tbody></table>
+    <div class="empty" id="orders-empty" style="display:none"><div class="icon">📋</div><p>No orders yet</p></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <h2 id="product-modal-title">Add New Product</h2>
+    <input type="hidden" id="edit-product-id">
+    <div class="form-group">
+      <label>Product Name</label>
+      <input type="text" id="prod-name" placeholder="e.g. Dell XPS 13">
+    </div>
+    <div class="form-group">
+      <label>Price ($)</label>
+      <input type="number" id="prod-price" placeholder="0.00" step="0.01" min="0.01">
+    </div>
+    <div class="form-group">
+      <label>Product Image (Optional)</label>
+      <input type="file" id="prod-image" accept="image/*">
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-outline" onclick="closeModal('product-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE UPLOAD MODAL -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal">
+    <h2>Upload Product Image</h2>
+    <div class="form-group">
+      <label>Select Image</label>
+      <input type="file" id="upload-file" accept="image/*">
+    </div>
+    <input type="hidden" id="upload-product-id">
+    <div class="modal-buttons">
+      <button class="btn btn-outline" onclick="closeModal('upload-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="uploadImage()">Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT DETAILS MODAL -->
+<div class="modal-overlay" id="product-detail-modal">
+  <div class="modal">
+    <h2 id="detail-product-name"></h2>
+    <img id="detail-product-img" class="product-img" style="cursor:pointer" alt="Product image">
+    <div style="margin:16px 0">
+      <div style="color:var(--muted);font-size:12px;margin-bottom:4px">Price</div>
+      <div class="price" style="font-size:24px" id="detail-product-price"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btn-warn btn-sm" onclick="openEditProduct(detailProductId)">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteProduct(detailProductId)">Delete</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-outline" onclick="closeModal('product-detail-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER DETAILS MODAL -->
+<div class="modal-overlay" id="order-detail-modal">
+  <div class="modal">
+    <h2>Order Details</h2>
+    <div style="margin:16px 0;border-bottom:1px solid var(--border);padding-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+        <div>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:4px">Order ID</div>
+          <div id="detail-order-id" style="font-family:monospace;font-size:12px"></div>
+        </div>
+        <div>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:4px">Status</div>
+          <div id="detail-order-status-badge"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:4px">Product</div>
+          <div id="detail-order-product"></div>
+        </div>
+        <div>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:4px">Quantity</div>
+          <div id="detail-order-qty"></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin:16px 0">
+      <label>Update Status</label>
+      <select id="detail-order-status-select" style="width:100%;padding:8px;margin-top:8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)">
+        <option value="PENDING">Pending</option>
+        <option value="CONFIRMED">Confirmed</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="SHIPPED">Shipped</option>
+        <option value="DELIVERED">Delivered</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:8px" onclick="updateOrderStatus()">Update Status</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-success" onclick="completeOrder(detailOrderId)">Complete Order</button>
+      <button class="btn btn-danger" onclick="deleteOrder(detailOrderId)">Delete Order</button>
+      <button class="btn btn-outline" onclick="closeModal('order-detail-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.port === '3000'
+  ? 'http://localhost:8080'
+  : (window.location.origin.includes('8080') ? '' : 'http://localhost:8080');
+
+let token = localStorage.getItem('pos_token');
+let currentUser = JSON.parse(localStorage.getItem('pos_user') || 'null');
+let products = [];
+let cart = [];
+let orders = [];
+let isRegister = false;
+let detailProductId = null;
+let detailOrderId = null;
+
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+async function api(path, opts = {}) {
+  const headers = { ...opts.headers };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  if (opts.body && !(opts.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(opts.body);
+  }
+  const res = await fetch(API + path, { ...opts, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || err.error || 'Request failed');
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function toggleAuthMode() {
+  isRegister = !isRegister;
+  document.getElementById('auth-title').textContent = isRegister ? 'Create Account' : 'Sign In';
+  document.getElementById('auth-btn').textContent = isRegister ? 'Register' : 'Sign In';
+  document.getElementById('register-fields').style.display = isRegister ? 'block' : 'none';
+  document.getElementById('auth-toggle-text').textContent = isRegister ? 'Already have an account?' : "Don't have an account?";
+  document.getElementById('auth-toggle-link').textContent = isRegister ? 'Sign In' : 'Register';
+}
+
+async function handleAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) return toast('Fill all fields', 'error');
+  try {
+    let data;
+    if (isRegister) {
+      const name = document.getElementById('reg-name').value.trim();
+      if (!name) return toast('Name is required', 'error');
+      data = await api('/auth/register', { method: 'POST', body: { name, email, password } });
+    } else {
+      data = await api('/auth/login', { method: 'POST', body: { email, password } });
+    }
+    token = data.token;
+    localStorage.setItem('pos_token', token);
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    currentUser = { id: parseInt(payload.sub), email: payload.email || email };
+    localStorage.setItem('pos_user', JSON.stringify(currentUser));
+    toast('Welcome!', 'success');
+    await enterApp();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function enterApp() {
+  document.getElementById('auth-page').classList.remove('active');
+  document.getElementById('main-nav').style.display = 'flex';
+  document.getElementById('header-user').style.display = 'flex';
+  document.getElementById('header-username').textContent = currentUser.email;
+  const targetPage = getInitialPageFromHash();
+  showPage(targetPage, true);
+  await Promise.all([loadProducts(), loadOrders()]);
+  renderActivePage();
+}
+
+function logout() {
+  token = null; currentUser = null; cart = [];
+  localStorage.removeItem('pos_token');
+  localStorage.removeItem('pos_user');
+  document.getElementById('main-nav').style.display = 'none';
+  document.getElementById('header-user').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('auth-page').classList.add('active');
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+}
+
+function getInitialPageFromHash() {
+  const validPages = ['dashboard', 'products', 'pos', 'orders'];
+  const hashPage = window.location.hash.replace('#', '').toLowerCase();
+  return validPages.includes(hashPage) ? hashPage : 'dashboard';
+}
+
+function showPage(id, skipHashUpdate = false) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('#main-nav button').forEach(b => b.classList.toggle('active', b.dataset.page === id));
+  if (!skipHashUpdate) {
+    window.location.hash = id;
+  }
+  renderActivePage();
+}
+
+function renderActivePage() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const id = activePage.id;
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'products') renderProducts();
+  if (id === 'pos') renderPosProducts();
+  if (id === 'orders') renderOrders();
+}
+
+async function loadProducts() {
+  try {
+    products = await api('/products');
+    renderActivePage();
+  } catch (e) { console.error(e); }
+}
+
+async function loadOrders() {
+  if (!currentUser) return;
+  try {
+    orders = await api('/orders?userId=' + currentUser.id);
+    renderActivePage();
+  } catch (e) { console.error(e); }
+}
+
+function getStatusBadge(status) {
+  const badgeClass = status === 'DELIVERED' || status === 'CONFIRMED' || status === 'COMPLETED' ? 'badge-success' : 
+                      status === 'PENDING' ? 'badge-pending' : 'badge-warn';
+  return `<span class="badge ${badgeClass}">${status}</span>`;
+}
+
+function getProductId(product) {
+  if (!product) return null;
+  return product.id || product.productId || product._id || null;
+}
+
+function findProductById(id) {
+  return products.find(pr => getProductId(pr) === id);
+}
+
+function renderDashboard() {
+  document.getElementById('stat-products').textContent = products.length;
+  document.getElementById('stat-orders').textContent = orders.length;
+  const revenue = orders.reduce((sum, o) => {
+    const p = findProductById(o.productId);
+    return sum + (p ? p.price * o.quantity : 0);
+  }, 0);
+  document.getElementById('stat-revenue').textContent = '$' + revenue.toFixed(2);
+
+  const tbody = document.getElementById('dash-orders');
+  const recent = orders.slice(-5).reverse();
+  tbody.innerHTML = recent.length ? recent.map(o => {
+    const p = findProductById(o.productId);
+    return `<tr>
+      <td style="font-family:monospace;font-size:12px">${o.id.substring(0,8)}...</td>
+      <td>${p ? p.name : o.productId.substring(0,8)}</td>
+      <td>${o.quantity}</td>
+      <td>${getStatusBadge(o.status || 'PENDING')}</td>
+      <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No orders yet</td></tr>';
+}
+
+function renderProducts() {
+  const q = (document.getElementById('product-search').value || '').toLowerCase();
+  const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+  const grid = document.getElementById('product-grid');
+  if (!filtered.length) { 
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="icon">📦</div><p>No products found</p></div>'; 
+    return; 
+  }
+  grid.innerHTML = filtered.map(p => {
+    const pid = getProductId(p);
+    if (!pid) return '';
+    return `
+    <div class="card product-card">
+      <div style="overflow:hidden;cursor:pointer" onclick="showProductDetail('${pid}')">
+        ${p.imageUrl ? `<img src="${p.imageUrl}" class="product-img" onerror="this.style.display='none'" alt="${p.name}">` : `<div class="product-img" style="display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer">📷</div>`}
+      </div>
+      <div class="product-info">
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">$${p.price.toFixed(2)}</div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-outline btn-xs" onclick="openUpload('${pid}')">📸 Image</button>
+        <button class="btn btn-warn btn-xs" onclick="openEditProduct('${pid}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteProduct('${pid}')">🗑️ Delete</button>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function renderPosProducts() {
+  const q = (document.getElementById('pos-search').value || '').toLowerCase();
+  const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+  const grid = document.getElementById('pos-products');
+  if (!filtered.length) { grid.innerHTML = '<div class="empty"><div class="icon">🔍</div><p>No products found</p></div>'; return; }
+  grid.innerHTML = filtered.map(p => {
+    const pid = getProductId(p);
+    if (!pid) return '';
+    return `
+    <div class="card" style="cursor:pointer" onclick="addToCart('${pid}')">
+      ${p.imageUrl ? `<img src="${p.imageUrl}" class="product-img" onerror="this.style.display='none'" alt="${p.name}">` : `<div class="product-img" style="display:flex;align-items:center;justify-content:center;font-size:32px">📦</div>`}
+      <h3 style="font-size:15px;margin-bottom:4px">${p.name}</h3>
+      <div class="price">$${p.price.toFixed(2)}</div>
+    </div>
+  `;
+  }).join('');
+  renderCart();
+}
+
+function addToCart(productId) {
+  const existing = cart.find(c => c.productId === productId);
+  if (existing) { existing.quantity++; } else { cart.push({ productId, quantity: 1 }); }
+  renderCart();
+  toast('Added to cart', 'success');
+}
+
+function removeFromCart(productId) {
+  cart = cart.filter(c => c.productId !== productId);
+  renderCart();
+}
+
+function updateQty(productId, delta) {
+  const item = cart.find(c => c.productId === productId);
+  if (!item) return;
+  item.quantity += delta;
+  if (item.quantity <= 0) cart = cart.filter(c => c.productId !== productId);
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  if (!cart.length) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Cart is empty</div>';
+    document.getElementById('cart-total').textContent = '$0.00';
+    document.getElementById('place-order-btn').disabled = true;
+    return;
+  }
+  document.getElementById('place-order-btn').disabled = false;
+  let total = 0;
+  container.innerHTML = cart.map(c => {
+    const p = findProductById(c.productId);
+    if (!p) return '';
+    const subtotal = p.price * c.quantity;
+    total += subtotal;
+    return `<div class="cart-item">
+      <div><div style="font-weight:600;font-size:14px">${p.name}</div><div style="color:var(--muted);font-size:12px">$${p.price.toFixed(2)} each</div></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="qty-control">
+          <button onclick="updateQty('${c.productId}',-1)">−</button>
+          <span>${c.quantity}</span>
+          <button onclick="updateQty('${c.productId}',1)">+</button>
+        </div>
+        <span class="price">$${subtotal.toFixed(2)}</span>
+        <button class="btn btn-danger btn-sm" onclick="removeFromCart('${c.productId}')" style="padding:4px 8px">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('cart-total').textContent = '$' + total.toFixed(2);
+}
+
+async function placeOrder() {
+  if (!cart.length || !currentUser) return;
+  document.getElementById('place-order-btn').disabled = true;
+  try {
+    for (const item of cart) {
+      await api('/orders', { method: 'POST', body: { userId: currentUser.id, productId: item.productId, quantity: item.quantity } });
+    }
+    toast('Order placed successfully!', 'success');
+    cart = [];
+    renderCart();
+    await loadOrders();
+  } catch (e) { toast(e.message, 'error'); }
+  document.getElementById('place-order-btn').disabled = false;
+}
+
+function renderOrders() {
+  const statusFilter = document.getElementById('order-status-filter').value;
+  const filtered = statusFilter ? orders.filter(o => o.status === statusFilter) : orders;
+  const tbody = document.getElementById('orders-table');
+  const empty = document.getElementById('orders-empty');
+  if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = filtered.slice().reverse().map(o => {
+    const p = findProductById(o.productId);
+    return `<tr>
+      <td style="font-family:monospace;font-size:12px;cursor:pointer" onclick="showOrderDetail('${o.id}')">${o.id.substring(0,12)}...</td>
+      <td>${p ? p.name : 'N/A'}</td>
+      <td>${o.quantity}</td>
+      <td class="price">$${p ? (p.price * o.quantity).toFixed(2) : '0.00'}</td>
+      <td>${getStatusBadge(o.status || 'PENDING')}</td>
+      <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-xs" onclick="showOrderDetail('${o.id}')">Details</button>
+          <button class="btn btn-success btn-xs" onclick="completeOrder('${o.id}')">Complete</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteOrder('${o.id}')">Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openAddProduct() {
+  document.getElementById('edit-product-id').value = '';
+  document.getElementById('product-modal-title').textContent = 'Add New Product';
+  document.getElementById('prod-name').value = '';
+  document.getElementById('prod-price').value = '';
+  document.getElementById('prod-image').value = '';
+  document.getElementById('product-modal').classList.add('show');
+}
+
+function openEditProduct(id) {
+  const prod = findProductById(id);
+  if (!prod) return;
+  detailProductId = null;
+  closeModal('product-detail-modal');
+  document.getElementById('edit-product-id').value = id;
+  document.getElementById('product-modal-title').textContent = 'Edit Product';
+  document.getElementById('prod-name').value = prod.name;
+  document.getElementById('prod-price').value = prod.price;
+  document.getElementById('prod-image').value = '';
+  document.getElementById('product-modal').classList.add('show');
+}
+
+function openUpload(id) { 
+  document.getElementById('upload-product-id').value = id; 
+  document.getElementById('upload-modal').classList.add('show'); 
+}
+
+function closeModal(id) { 
+  document.getElementById(id).classList.remove('show'); 
+}
+
+async function saveProduct() {
+  const id = document.getElementById('edit-product-id').value;
+  const name = document.getElementById('prod-name').value.trim();
+  const price = parseFloat(document.getElementById('prod-price').value);
+  const imageFile = document.getElementById('prod-image').files[0];
+  if (!name || !price || price <= 0) return toast('Fill all fields correctly', 'error');
+  try {
+    let savedId = id;
+    if (id) {
+      const updated = await api('/products/' + id, { method: 'PUT', body: { name, price } });
+      savedId = (updated && getProductId(updated)) || id;
+    } else {
+      const created = await api('/products', { method: 'POST', body: { name, price } });
+      savedId = created ? getProductId(created) : null;
+      if (!savedId) {
+        await loadProducts();
+        const matched = products.find(p => p.name === name && Number(p.price) === Number(price));
+        savedId = matched ? getProductId(matched) : null;
+      }
+    }
+
+    if (imageFile && savedId) {
+      await uploadProductImageById(savedId, imageFile);
+    } else if (imageFile && !savedId) {
+      toast('Product saved but image upload skipped (missing product id)', 'warn');
+    }
+
+    toast(id ? 'Product updated!' : 'Product added!', 'success');
+    if (imageFile) {
+      toast('Image uploaded!', 'success');
+    }
+    closeModal('product-modal');
+    document.getElementById('prod-image').value = '';
+    await loadProducts();
+    renderProducts();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function uploadProductImageById(id, file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  return api('/products/' + id + '/image', { method: 'POST', body: fd });
+}
+
+async function deleteProduct(id) {
+  if (!id) {
+    toast('Invalid product id', 'error');
+    return;
+  }
+  if (!confirm('Delete this product?')) return;
+  try {
+    await api('/products/' + id, { method: 'DELETE' });
+    toast('Product deleted!', 'success');
+    await loadProducts();
+    closeModal('product-detail-modal');
+    renderProducts();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function uploadImage() {
+  const file = document.getElementById('upload-file').files[0];
+  const id = document.getElementById('upload-product-id').value;
+  if (!file) return toast('Select a file', 'error');
+  if (!id) return toast('Invalid product id', 'error');
+  try {
+    await uploadProductImageById(id, file);
+    toast('Image uploaded!', 'success');
+    closeModal('upload-modal');
+    document.getElementById('upload-file').value = '';
+    await loadProducts();
+    renderProducts();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function showProductDetail(id) {
+  const prod = findProductById(id);
+  if (!prod) return;
+  detailProductId = id;
+  document.getElementById('detail-product-name').textContent = prod.name;
+  document.getElementById('detail-product-price').textContent = '$' + prod.price.toFixed(2);
+  const img = document.getElementById('detail-product-img');
+  if (prod.imageUrl) {
+    img.src = prod.imageUrl;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
+  document.getElementById('product-detail-modal').classList.add('show');
+}
+
+function showOrderDetail(id) {
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+  const prod = findProductById(order.productId);
+  detailOrderId = id;
+  document.getElementById('detail-order-id').textContent = id;
+  document.getElementById('detail-order-status-badge').innerHTML = getStatusBadge(order.status || 'PENDING');
+  document.getElementById('detail-order-product').textContent = prod ? prod.name : 'N/A';
+  document.getElementById('detail-order-qty').textContent = order.quantity;
+  document.getElementById('detail-order-status-select').value = order.status || 'PENDING';
+  document.getElementById('order-detail-modal').classList.add('show');
+}
+
+async function updateOrderStatus() {
+  if (!detailOrderId) return;
+  const status = document.getElementById('detail-order-status-select').value;
+  try {
+    await api('/orders/' + detailOrderId + '/status', { method: 'PUT', body: { status } });
+    toast('Order status updated!', 'success');
+    await loadOrders();
+    closeModal('order-detail-modal');
+    renderOrders();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function completeOrder(id) {
+  if (!id) return;
+  try {
+    await api('/orders/' + id + '/complete', { method: 'PUT' });
+    toast('Order completed!', 'success');
+    await loadOrders();
+    renderOrders();
+    renderDashboard();
+    if (detailOrderId === id) {
+      const fresh = orders.find(o => o.id === id);
+      if (fresh) {
+        showOrderDetail(id);
+      }
+    }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function deleteOrder(id) {
+  if (!id) return;
+  if (!confirm('Delete this order?')) return;
+  try {
+    await api('/orders/' + id, { method: 'DELETE' });
+    toast('Order deleted!', 'success');
+    if (detailOrderId === id) {
+      detailOrderId = null;
+      closeModal('order-detail-modal');
+    }
+    await loadOrders();
+    renderOrders();
+    renderDashboard();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+});
+
+window.addEventListener('hashchange', () => {
+  if (!token || !currentUser) return;
+  showPage(getInitialPageFromHash(), true);
+});
+
+if (token && currentUser) enterApp();
+</script>
+</body>
+</html>
